@@ -22,7 +22,41 @@ public class MovementManager : MonoBehaviour
         // 보드에 있는지, 다른 piece에 의해 막히는지 등을 체크
         // 폰에 대한 예외 처리를 적용
         // --- TODO ---
-        
+        if (!Utils.IsInBoard(targetPos))
+            return false;
+
+        bool is_target_reachable = false;
+        for (int i = 1; i <= moveInfo.distance; ++i)
+        {
+            int x = piece.MyPos.Item1 + i * moveInfo.dirX;
+            int y = piece.MyPos.Item2 + i * moveInfo.dirY;
+
+            if (Utils.IsInBoard((x, y))) {
+                Piece target_piece = gameManager.Pieces[x, y];
+                if (target_piece != null) {
+                    if (target_piece.PlayerDirection == piece.PlayerDirection)
+                        break;
+                    else if ((x, y) != targetPos)
+                        break;
+                }
+            }
+
+            if ((x, y) == targetPos) {
+                is_target_reachable = true;
+                break;
+            }
+        }
+        if (!is_target_reachable)
+            return false;
+
+        if (piece is Pawn) {
+            if (moveInfo.dirX == 0 && gameManager.Pieces[targetPos.Item1, targetPos.Item2] != null)
+                return false;
+            if (moveInfo.dirX != 0 && gameManager.Pieces[targetPos.Item1, targetPos.Item2] == null)
+                return false;
+        }
+
+        return true;
         // ------
     }
 
@@ -84,7 +118,12 @@ public class MovementManager : MonoBehaviour
         // 왕이 지금 체크 상태인지를 리턴
         // gameManager.Pieces에서 Piece들을 참조하여 움직임을 확인
         // --- TODO ---
-        
+        foreach (var piece in gameManager.Pieces) {
+            if (piece != null && piece.PlayerDirection != playerDirection)
+                if (IsValidMoveWithoutCheck(piece, kingPos))
+                    return true;
+        }
+        return false;
         // ------
     }
 
@@ -97,7 +136,17 @@ public class MovementManager : MonoBehaviour
         // effectPrefab을 effectParent의 자식으로 생성하고 위치를 적절히 설정
         // currentEffects에 effectPrefab을 추가
         // --- TODO ---
-        
+        foreach (var move in piece.GetMoves()) {
+            for (int i = 1; i <= move.distance; ++i) {
+                int x = piece.MyPos.Item1 + i * move.dirX;
+                int y = piece.MyPos.Item2 + i * move.dirY;
+                if (IsValidMove(piece, (x, y))) {
+                    GameObject effect_object = Instantiate(effectPrefab, effectParent);
+                    effect_object.transform.position = Utils.ToRealPos((x, y));
+                    currentEffects.Add(effect_object);
+                }
+            }
+        }
         // ------
     }
 
